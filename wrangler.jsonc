@@ -1,7 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "secure-auth-challange",
-  "main": "src/api/index.ts",
+  "main": "api/index.ts",
   "compatibility_date": "2025-05-04",
   "assets": {
     "directory": "./out/"
