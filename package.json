@@ -7,11 +7,16 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "format": "prettier --config .prettierrc --write \"src/**/*.{ts,js,tsx,jsx}\"",
+    "wrangler": "wrangler",
     "cloudflare:dev": "wrangler dev",
     "cloudflare:deploy": "wrangler deploy --minify",
     "cloudflare:cf-typegen": "wrangler types --env-interface CloudflareBindings"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@mui/material": "^7.0.2",
     "hono": "^4.7.8",
     "next": "15.3.1",
     "react": "^19.0.0",
@@ -21,6 +26,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "prettier": "^3.5.3",
     "typescript": "^5",
     "wrangler": "^4.14.1"
   }
