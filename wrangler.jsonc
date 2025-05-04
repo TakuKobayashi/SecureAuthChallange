@@ -9,18 +9,15 @@
   "assets": {
     "directory": "./out/"
   },
-  // "compatibility_flags": [
-  //   "nodejs_compat"
-  // ],
   // "vars": {
   //   "MY_VAR": "my-variable"
   // },
-  // "kv_namespaces": [
-  //   {
-  //     "binding": "MY_KV_NAMESPACE",
-  //     "id": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-  //   }
-  // ],
+  "kv_namespaces": [
+     {
+       "binding": "KV",
+       "id": "d2145320eb2747dab3abca200a17e8e4"
+     }
+  ],
   // "r2_buckets": [
   //   {
   //     "binding": "MY_BUCKET",
