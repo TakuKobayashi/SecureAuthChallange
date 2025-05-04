@@ -6,17 +6,23 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "cloudflare:dev": "wrangler dev",
+    "cloudflare:deploy": "wrangler deploy --minify",
+    "cloudflare:cf-typegen": "wrangler types --env-interface CloudflareBindings"
   },
   "dependencies": {
+    "hono": "^4.7.8",
+    "next": "15.3.1",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "next": "15.3.1"
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "typescript": "^5",
+    "@cloudflare/workers-types": "^4.20250504.0",
     "@types/node": "^20",
     "@types/react": "^19",
-    "@types/react-dom": "^19"
+    "@types/react-dom": "^19",
+    "typescript": "^5",
+    "wrangler": "^4.14.1"
   }
 }
