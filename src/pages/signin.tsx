@@ -100,8 +100,8 @@ export default function SignIn() {
               Sign In
             </Button>
             <Grid container>
-              <Grid item xs></Grid>
-              <Grid item>
+              <Grid></Grid>
+              <Grid>
                 <Link href="/signup">{'Sign Up'}</Link>
               </Grid>
             </Grid>
