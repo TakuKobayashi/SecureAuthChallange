@@ -3,6 +3,9 @@
   "name": "secure-auth-challange",
   "main": "api/index.ts",
   "compatibility_date": "2025-05-04",
+  "compatibility_flags": [
+     "nodejs_compat"
+  ],
   "assets": {
     "directory": "./out/"
   },

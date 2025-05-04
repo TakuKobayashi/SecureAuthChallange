@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "format": "prettier --config .prettierrc --write \"src/**/*.{ts,js,tsx,jsx}\"",
+    "format": "prettier --config .prettierrc --write \"{src,api}/**/*.{ts,js,tsx,jsx}\"",
     "wrangler": "wrangler",
     "cloudflare:dev": "wrangler dev",
     "cloudflare:deploy": "wrangler deploy --minify",
