@@ -40,7 +40,15 @@ export default function SignIn() {
 
   const handleSubmit = async () => {
     const response = await axios
-      .post(`${process.env.NEXT_PUBLIC_API_ROOT_URL}/auth/signin`, { email: email, password: password })
+      .post(
+        `${process.env.NEXT_PUBLIC_API_ROOT_URL}/account/signin`,
+        { email: email, password: password },
+        {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+        },
+      )
       .catch((error: AxiosError) => {
         setErrorDialogInput({ ...errorDialogInput, title: '認証に失敗しました', message: error.message, open: true });
       });

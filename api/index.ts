@@ -1,13 +1,13 @@
 import { KVNamespace } from '@cloudflare/workers-types';
 import { Hono } from 'hono';
-import { authRouter } from './routes/auth';
+import { accountRouter } from './routes/account';
 
 type Bindings = {
   KV: KVNamespace;
 };
 
 const app = new Hono<{ Bindings: Bindings }>({ strict: true }).basePath('/api');
-app.route('/auth', authRouter);
+app.route('/account', accountRouter);
 
 app.get('/', (c) => {
   return c.json({ Hello: 'Hono!' });

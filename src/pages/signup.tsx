@@ -36,7 +36,15 @@ export default function SignUp() {
 
   const handleSubmit = async () => {
     const response = await axios
-      .post(`${process.env.NEXT_PUBLIC_API_ROOT_URL}/auth/signin`, { email: email, password: password })
+      .post(
+        `${process.env.NEXT_PUBLIC_API_ROOT_URL}/account/signup`,
+        { email: email, password: password },
+        {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+        },
+      )
       .catch((error: AxiosError) => {
         setErrorDialogInput({ ...errorDialogInput, title: 'アカウントの作成に失敗しました', message: error.message, open: true });
       });
