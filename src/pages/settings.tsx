@@ -16,9 +16,11 @@ import {
   FormGroup,
   FormControlLabel,
 } from '@mui/material';
+import qrcode from 'qrcode';
 import { useRouter } from 'next/router';
+import Image from 'next/image';
 
-interface UnlockConfirmDialogInput {
+interface ConfirmDialogInput {
   title: string;
   negativeButtonText: string;
   positiveButtonText: string;
@@ -26,12 +28,21 @@ interface UnlockConfirmDialogInput {
   open: boolean;
 }
 
+interface ExtraAuthDialogInput {
+  otpImageDataUrl: string;
+  open: boolean;
+}
+
 export default function Settings() {
-  const [unlockConfirmDialogInput, setUnlockConfirmDialogInput] = useState<UnlockConfirmDialogInput>({
+  const [confirmDialogInput, setConfirmDialogInput] = useState<ConfirmDialogInput>({
     title: '',
     negativeButtonText: '',
     positiveButtonText: '',
     onClickPositiveButtion: () => {},
+    open: false,
+  });
+  const [extraAuthDialogInput, setExtraAuthDialogInput] = useState<ExtraAuthDialogInput>({
+    otpImageDataUrl: '',
     open: false,
   });
   const router = useRouter();
@@ -41,8 +52,8 @@ export default function Settings() {
 
   const handle2FAToggle = (event: ChangeEvent<HTMLInputElement>) => {
     if (twoFAActive) {
-      setUnlockConfirmDialogInput({
-        ...unlockConfirmDialogInput,
+      setConfirmDialogInput({
+        ...confirmDialogInput,
         title: '二段回認証の設定を解除しますか?',
         onClickPositiveButtion: () => {
           execute2FALockUnlock(false);
@@ -57,8 +68,8 @@ export default function Settings() {
   };
   const handlePassKeyToggle = (event: ChangeEvent<HTMLInputElement>) => {
     if (passKeyActive) {
-      setUnlockConfirmDialogInput({
-        ...unlockConfirmDialogInput,
+      setConfirmDialogInput({
+        ...confirmDialogInput,
         title: 'パスキーの設定を解除しますか?',
         negativeButtonText: 'キャンセル',
         positiveButtonText: '解除する',
@@ -91,16 +102,26 @@ export default function Settings() {
       },
     });
     if (response && response.status < 400) {
-      setTwoFAActive(isLock);
+      if (isLock) {
+        const otpauthUrl = response.data.otpauth_url;
+        const otpauthUrlQrcodeDataUrl = await qrcode.toDataURL(otpauthUrl);
+        setExtraAuthDialogInput({
+          ...extraAuthDialogInput,
+          otpImageDataUrl: otpauthUrlQrcodeDataUrl,
+          open: true,
+        });
+      } else {
+        setTwoFAActive(false);
+      }
     }
-    setUnlockConfirmDialogInput({ ...unlockConfirmDialogInput, open: false });
+    setConfirmDialogInput({ ...confirmDialogInput, open: false });
   };
 
   const executePasskeyLockUnlock = async () => {};
 
   const handleSignOut = async () => {
-    setUnlockConfirmDialogInput({
-      ...unlockConfirmDialogInput,
+    setConfirmDialogInput({
+      ...confirmDialogInput,
       title: 'サインアウトしますか?',
       negativeButtonText: 'キャンセル',
       positiveButtonText: 'サインアウトする',
@@ -139,22 +160,36 @@ export default function Settings() {
         </Box>
       </Container>
       <Dialog
-        open={unlockConfirmDialogInput.open}
-        onClose={(e) => setUnlockConfirmDialogInput({ ...unlockConfirmDialogInput, open: false })}
+        open={confirmDialogInput.open}
+        onClose={(e) => setConfirmDialogInput({ ...confirmDialogInput, open: false })}
         aria-labelledby="unlock-dialog-title"
         aria-describedby="unlock-dialog-description"
       >
-        <DialogTitle id="unlock-dialog-title">{unlockConfirmDialogInput.title}</DialogTitle>
+        <DialogTitle id="unlock-dialog-title">{confirmDialogInput.title}</DialogTitle>
         <DialogActions>
-          <Button
-            onClick={(e) => setUnlockConfirmDialogInput({ ...unlockConfirmDialogInput, open: false })}
-            variant="contained"
-            color="error"
-          >
-            {unlockConfirmDialogInput.negativeButtonText}
+          <Button onClick={(e) => setConfirmDialogInput({ ...confirmDialogInput, open: false })} variant="contained" color="error">
+            {confirmDialogInput.negativeButtonText}
           </Button>
-          <Button onClick={unlockConfirmDialogInput.onClickPositiveButtion} variant="contained">
-            {unlockConfirmDialogInput.positiveButtonText}
+          <Button onClick={confirmDialogInput.onClickPositiveButtion} variant="contained">
+            {confirmDialogInput.positiveButtonText}
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog
+        open={extraAuthDialogInput.open}
+        onClose={(e) => setExtraAuthDialogInput({ ...extraAuthDialogInput, open: false })}
+        aria-labelledby="extra-auth-dialog-title"
+        aria-describedby="extra-auth-dialog-description"
+      >
+        <DialogTitle id="extra-auth-dialog-title">2段解認証の設定</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            <Image src={extraAuthDialogInput.otpImageDataUrl} alt="2FA QRcode" width={200} height={200} />
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={(e) => setExtraAuthDialogInput({ ...extraAuthDialogInput, open: false })} variant="contained">
+            読み取りました
           </Button>
         </DialogActions>
       </Dialog>

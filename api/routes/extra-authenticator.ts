@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import speakeasy from 'speakeasy';
 
 const extraAuthenticatorRouter = new Hono({ strict: true });
 extraAuthenticatorRouter.use(cors());
@@ -17,8 +18,11 @@ extraAuthenticatorRouter.post('/challenge', async (c) => {
 });
 
 extraAuthenticatorRouter.post('/regist', async (c) => {
+  const secret = speakeasy.generateSecret();
+  console.log(secret.base32);
+  const otpauthUrl = secret.otpauth_url || '';
   return c.json({
-    regist: 'success',
+    otpauth_url: otpauthUrl,
   });
 });
 
