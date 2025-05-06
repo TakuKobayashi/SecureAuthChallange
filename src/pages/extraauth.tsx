@@ -11,6 +11,7 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
+  FormControlLabel,
   Grid,
   TextField,
   Typography,
@@ -25,9 +26,8 @@ interface ErrorDialogInput {
   open: boolean;
 }
 
-export default function SignIn() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+export default function ExtraAuth() {
+  const [code, setCode] = useState('');
   const [errorDialogInput, setErrorDialogInput] = useState<ErrorDialogInput>({
     title: '',
     message: '',
@@ -39,11 +39,12 @@ export default function SignIn() {
   const handleSubmit = async () => {
     const response = await axios
       .post(
-        `${process.env.NEXT_PUBLIC_API_ROOT_URL}/account/signin`,
-        { email: email, password: password },
+        `${process.env.NEXT_PUBLIC_API_ROOT_URL}/extraauth/challenge`,
+        { code: code },
         {
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
+            session: router.query.session,
           },
         },
       )
@@ -51,23 +52,13 @@ export default function SignIn() {
         setErrorDialogInput({ ...errorDialogInput, title: '認証に失敗しました', message: error.message, open: true });
       });
     if (response && response.status < 400) {
-      if (response.data.state === 'extraauth') {
-        router.push({
-          pathname: '/extraauth',
-          query: { session: response.data.session },
-        });
-      } else if (response.data.state === 'success') {
-        window.localStorage.setItem(SessionTokenKey, response.data.session);
-        setSessionToken(response.data.session);
-        router.push('/settings');
-      }
+      window.localStorage.setItem(SessionTokenKey, response.data.session);
+      setSessionToken(response.data.session);
+      router.replace('/settings');
     }
   };
   const handleChangeEmail = (e: ChangeEvent<HTMLInputElement>) => {
-    setEmail(e.currentTarget.value);
-  };
-  const handleChangePassword = (e: ChangeEvent<HTMLInputElement>) => {
-    setPassword(e.currentTarget.value);
+    setCode(e.currentTarget.value);
   };
 
   return (
@@ -83,40 +74,22 @@ export default function SignIn() {
           }}
         >
           <Typography component="h1" variant="h5">
-            Sign in
+            2段階認証のコードを入力してください
           </Typography>
           <Box sx={{ mt: 1 }}>
             <TextField
               margin="normal"
               required
               fullWidth
-              id="email"
-              label="Email Address"
-              name="email"
-              autoComplete="email"
+              id="2FA Code"
+              name="2FA Code"
+              autoComplete="2FA Code"
               onChange={handleChangeEmail}
               autoFocus
             />
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              name="password"
-              label="Password"
-              type="password"
-              id="password"
-              autoComplete="current-password"
-              onChange={handleChangePassword}
-            />
             <Button type="submit" fullWidth variant="contained" sx={{ mt: 3, mb: 2 }} onClick={handleSubmit}>
-              Sign In
+              ログインする
             </Button>
-            <Grid container>
-              <Grid></Grid>
-              <Grid>
-                <Link href="/signup">{'Sign Up'}</Link>
-              </Grid>
-            </Grid>
           </Box>
         </Box>
       </Container>

@@ -3,7 +3,7 @@ import { Hono, Context } from 'hono';
 import { cors } from 'hono/cors';
 import { HTTPException } from 'hono/http-exception';
 import crypto from 'node:crypto';
-import { loadSessionUser } from '@api/commons/utils';
+import { loadSessionUser, generateAndRegistSession } from '@api/commons/utils';
 
 type Bindings = {
   secure_auth_challange_user: KVNamespace;
@@ -12,16 +12,6 @@ type Bindings = {
 
 const accountRouter = new Hono<{ Bindings: Bindings }>({ strict: true });
 accountRouter.use(cors());
-
-async function generateAndRegistSession(context: Context, userEmail: string): Promise<string> {
-  const secureAuthChallangeSessionKV = context.env.secure_auth_challange_session;
-  const sessionUuid = crypto.randomUUID();
-  const sessionInfo = {
-    userEmail: userEmail,
-  };
-  await secureAuthChallangeSessionKV.put(sessionUuid, JSON.stringify(sessionInfo), { expirationTtl: 60 });
-  return sessionUuid;
-}
 
 accountRouter.get('/settings', async (c) => {
   const sessionUuid = c.req.header('session') || '';
@@ -50,11 +40,19 @@ accountRouter.post('/signin', async (c) => {
   if (userInfo.passwordHash !== passwordHash) {
     throw new HTTPException(401, { message: 'Invalid password' });
   }
-  await secureAuthChallangeUserKV.put(email, JSON.stringify({ ...userInfo, lastLoginedAt: new Date() }));
   const sessionUuid = await generateAndRegistSession(c, email);
-  return c.json({
-    session: sessionUuid,
-  });
+  if (userInfo.extraAuthInfo?.secret) {
+    return c.json({
+      state: 'extraauth',
+      session: sessionUuid,
+    });
+  } else {
+    await secureAuthChallangeUserKV.put(email, JSON.stringify({ ...userInfo, lastLoginedAt: new Date() }));
+    return c.json({
+      state: 'success',
+      session: sessionUuid,
+    });
+  }
 });
 
 accountRouter.post('/signup', async (c) => {
@@ -71,6 +69,7 @@ accountRouter.post('/signup', async (c) => {
   await secureAuthChallangeUserKV.put(email, JSON.stringify(userInfo));
   const sessionUuid = await generateAndRegistSession(c, email);
   return c.json({
+    state: 'success',
     session: sessionUuid,
   });
 });

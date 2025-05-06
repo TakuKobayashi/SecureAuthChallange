@@ -20,10 +20,10 @@
     "axios": "^1.9.0",
     "hono": "^4.7.8",
     "next": "15.3.1",
+    "otpauth": "^9.4.0",
     "qrcode": "^1.5.4",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "speakeasy": "^2.0.0"
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250504.0",
@@ -31,7 +31,6 @@
     "@types/qrcode": "^1.5.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@types/speakeasy": "^2.0.10",
     "prettier": "^3.5.3",
     "typescript": "^5",
     "wrangler": "^4.14.1"

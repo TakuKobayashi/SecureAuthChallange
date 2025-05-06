@@ -15,3 +15,13 @@ export async function loadSessionUser(context: Context, sessionUuid: string): Pr
   }
   return JSON.parse(userInfoJson);
 }
+
+export async function generateAndRegistSession(context: Context, userEmail: string): Promise<string> {
+  const secureAuthChallangeSessionKV = context.env.secure_auth_challange_session;
+  const sessionUuid = crypto.randomUUID();
+  const sessionInfo = {
+    userEmail: userEmail,
+  };
+  await secureAuthChallangeSessionKV.put(sessionUuid, JSON.stringify(sessionInfo), { expirationTtl: 60 });
+  return sessionUuid;
+}

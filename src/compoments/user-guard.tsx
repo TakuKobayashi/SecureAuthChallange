@@ -16,7 +16,7 @@ const UserGuard = ({ children }: { children: ((user: any) => ReactNode) | ReactN
         return;
       }
     }
-    const escapePathes = ['/signin', '/signup'];
+    const escapePathes = ['/signin', '/signup', '/extraauth'];
     // 未ログインであればリダイレクト
     if (isReady && !sessionToken && !escapePathes.includes(router.pathname)) {
       router.push('/signin');
