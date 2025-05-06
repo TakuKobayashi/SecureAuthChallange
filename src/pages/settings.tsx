@@ -1,6 +1,6 @@
 import { SessionTokenKey } from '../commons/localstorage-const-keys';
 import { useAuth } from '../context/auth';
-import { useState, ChangeEvent } from 'react';
+import { useState, useEffect, ChangeEvent } from 'react';
 import axios, { AxiosError } from 'axios';
 import {
   Box,
@@ -48,7 +48,26 @@ export default function Settings() {
   const router = useRouter();
   const [twoFAActive, setTwoFAActive] = useState(false);
   const [passKeyActive, setPassKeyActive] = useState(false);
-  const { setSessionToken } = useAuth();
+  const { sessionToken } = useAuth();
+
+  useEffect(() => {
+    (async () => {
+      if (!sessionToken) {
+        return;
+      }
+      const response = await axios
+        .get(`${process.env.NEXT_PUBLIC_API_ROOT_URL}/account/settings`, {
+          headers: { session: sessionToken },
+        })
+        .catch((error: AxiosError) => {
+          router.replace('/signin');
+        });
+      if (response) {
+        setTwoFAActive(response.data.extraAuthActive);
+        setPassKeyActive(response.data.passkeyActive);
+      }
+    })();
+  }, [sessionToken]);
 
   const handle2FAToggle = (event: ChangeEvent<HTMLInputElement>) => {
     if (twoFAActive) {
@@ -81,11 +100,16 @@ export default function Settings() {
   };
 
   const executeSignOut = async () => {
-    const response = await axios.post(`${process.env.NEXT_PUBLIC_API_ROOT_URL}/account/signout`, {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
+    const response = await axios.post(
+      `${process.env.NEXT_PUBLIC_API_ROOT_URL}/account/signout`,
+      {},
+      {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          session: sessionToken,
+        },
       },
-    });
+    );
     if (response && response.status < 400) {
       window.localStorage.removeItem(SessionTokenKey);
       router.replace('/signin');
@@ -96,11 +120,16 @@ export default function Settings() {
     const requestUrl = isLock
       ? `${process.env.NEXT_PUBLIC_API_ROOT_URL}/extraauth/regist`
       : `${process.env.NEXT_PUBLIC_API_ROOT_URL}/extraauth/unregist`;
-    const response = await axios.post(requestUrl, {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
+    const response = await axios.post(
+      requestUrl,
+      {},
+      {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          session: sessionToken,
+        },
       },
-    });
+    );
     if (response && response.status < 400) {
       if (isLock) {
         const otpauthUrl = response.data.otpauth_url;

@@ -3,6 +3,7 @@ import { Hono, Context } from 'hono';
 import { cors } from 'hono/cors';
 import { HTTPException } from 'hono/http-exception';
 import crypto from 'node:crypto';
+import { loadSessionUser } from '@api/commons/utils';
 
 type Bindings = {
   secure_auth_challange_user: KVNamespace;
@@ -21,6 +22,19 @@ async function generateAndRegistSession(context: Context, userEmail: string): Pr
   await secureAuthChallangeSessionKV.put(sessionUuid, JSON.stringify(sessionInfo), { expirationTtl: 60 });
   return sessionUuid;
 }
+
+accountRouter.get('/settings', async (c) => {
+  const sessionUuid = c.req.header('session') || '';
+  const userInfo = await loadSessionUser(c, sessionUuid);
+  const settingsInfo = {
+    extraAuthActive: false,
+    passkeyActive: false,
+  };
+  if (userInfo.extraAuthInfo?.secret) {
+    settingsInfo.extraAuthActive = true;
+  }
+  return c.json(settingsInfo);
+});
 
 accountRouter.post('/signin', async (c) => {
   const body = await c.req.parseBody();
@@ -50,6 +64,7 @@ accountRouter.post('/signup', async (c) => {
   const passwordHash = crypto.createHash('sha512').update(password).digest('hex');
   const secureAuthChallangeUserKV = c.env.secure_auth_challange_user;
   const userInfo = {
+    email: email,
     passwordHash: passwordHash,
     lastLoginedAt: new Date(),
   };
@@ -61,9 +76,10 @@ accountRouter.post('/signup', async (c) => {
 });
 
 accountRouter.post('/signout', async (c) => {
-  return c.json({
-    signput: 'success',
-  });
+  const sessionUuid = c.req.header('session') || '';
+  const secureAuthChallangeSessionKV = c.env.secure_auth_challange_session;
+  await secureAuthChallangeSessionKV.delete(sessionUuid);
+  return c.status(200);
 });
 
 export { accountRouter };
