@@ -1,8 +1,14 @@
+import { KVNamespace } from '@cloudflare/workers-types';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import speakeasy from 'speakeasy';
 
-const extraAuthenticatorRouter = new Hono({ strict: true });
+type Bindings = {
+  secure_auth_challange_user: KVNamespace;
+  secure_auth_challange_session: KVNamespace;
+};
+
+const extraAuthenticatorRouter = new Hono<{ Bindings: Bindings }>({ strict: true });
 extraAuthenticatorRouter.use(cors());
 
 extraAuthenticatorRouter.get('/', async (c) => {

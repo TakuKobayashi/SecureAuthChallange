@@ -13,10 +13,14 @@
   //   "MY_VAR": "my-variable"
   // },
   "kv_namespaces": [
-     {
-       "binding": "KV",
-       "id": "d2145320eb2747dab3abca200a17e8e4"
-     }
+    {
+      "binding": "secure_auth_challange_user",
+      "id": "a45fbbf3aea34d0b905bfd46114f10f0"
+    },
+    {
+      "binding": "secure_auth_challange_session",
+      "id": "a464082f5c7d470fa91c84cd5f31969e"
+    }
   ],
   // "r2_buckets": [
   //   {
