@@ -48,7 +48,7 @@ extraAuthenticatorRouter.post('/unregist', async (c) => {
   }
   const secureAuthChallangeUserKV = c.env.secure_auth_challange_user;
   await secureAuthChallangeUserKV.put(userInfo.email, JSON.stringify({ ...userInfo, extraAuthInfo: {} }));
-  return c.status(200);
+  return c.text('');
 });
 
 export { extraAuthenticatorRouter };

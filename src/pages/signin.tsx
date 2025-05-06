@@ -103,7 +103,6 @@ export default function SignIn() {
               autoComplete="current-password"
               onChange={handleChangePassword}
             />
-            <FormControlLabel control={<Checkbox value="remember" color="primary" />} label="Remember me" />
             <Button type="submit" fullWidth variant="contained" sx={{ mt: 3, mb: 2 }} onClick={handleSubmit}>
               Sign In
             </Button>

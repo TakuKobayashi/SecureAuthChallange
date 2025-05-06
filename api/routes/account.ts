@@ -79,7 +79,7 @@ accountRouter.post('/signout', async (c) => {
   const sessionUuid = c.req.header('session') || '';
   const secureAuthChallangeSessionKV = c.env.secure_auth_challange_session;
   await secureAuthChallangeSessionKV.delete(sessionUuid);
-  return c.status(200);
+  return c.text('');
 });
 
 export { accountRouter };

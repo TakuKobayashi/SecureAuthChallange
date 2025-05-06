@@ -134,6 +134,7 @@ export default function Settings() {
       if (isLock) {
         const otpauthUrl = response.data.otpauth_url;
         const otpauthUrlQrcodeDataUrl = await qrcode.toDataURL(otpauthUrl);
+        setTwoFAActive(true);
         setExtraAuthDialogInput({
           ...extraAuthDialogInput,
           otpImageDataUrl: otpauthUrlQrcodeDataUrl,
@@ -213,6 +214,7 @@ export default function Settings() {
         <DialogTitle id="extra-auth-dialog-title">2段解認証の設定</DialogTitle>
         <DialogContent>
           <DialogContentText>
+            Google AuthenticatorでQRCodeを読み取って登録してください
             <Image src={extraAuthDialogInput.otpImageDataUrl} alt="2FA QRcode" width={200} height={200} />
           </DialogContentText>
         </DialogContent>

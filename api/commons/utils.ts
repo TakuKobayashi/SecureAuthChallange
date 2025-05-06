@@ -2,8 +2,6 @@ import { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 
 export async function loadSessionUser(context: Context, sessionUuid: string): Promise<any> {
-  console.log(sessionUuid);
-  console.log('loadSessionUser');
   const secureAuthChallangeSessionKV = context.env.secure_auth_challange_session;
   const sessionInfoJson = await secureAuthChallangeSessionKV.get(sessionUuid);
   if (!sessionInfoJson) {
