@@ -55,7 +55,7 @@ export default function SignIn() {
     if (response && response.status < 400) {
       window.localStorage.setItem(SessionTokenKey, response.data.session);
       setSessionToken(response.data.session);
-      router.push('/themes');
+      router.push('/settings');
     }
   };
   const handleChangeEmail = (e: ChangeEvent<HTMLInputElement>) => {
