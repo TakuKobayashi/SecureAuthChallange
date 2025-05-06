@@ -24,6 +24,12 @@ jobs:
     - name: yarn install
       working-directory: ${{ matrix.root-project-path }}
       run: yarn install
+    - name: Register .env
+      working-directory: ${{ matrix.root-project-path }}
+      env:
+        NEXT_PUBLIC_API_ROOT_URL: ${{ secrets.NEXT_PUBLIC_API_ROOT_URL }}
+      run: |
+        echo "NEXT_PUBLIC_API_ROOT_URL=${NEXT_PUBLIC_API_ROOT_URL}" >> ./.env
     - name: Next.js build
       working-directory: ${{ matrix.root-project-path }}
       run: yarn run build
