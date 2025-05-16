@@ -1,5 +1,6 @@
 import { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
+import crypto from 'node:crypto';
 
 export async function loadSessionUser(context: Context, sessionUuid: string): Promise<any> {
   const secureAuthChallangeSessionKV = context.env.secure_auth_challange_session;
