@@ -1,7 +1,8 @@
 import { SessionTokenKey } from '../commons/localstorage-const-keys';
+import { createPasskey } from '../commons/webauthn';
 import { useAuth } from '../context/auth';
 import { useState, useEffect, ChangeEvent } from 'react';
-import axios, { AxiosError } from 'axios';
+import axios from 'axios';
 import {
   Box,
   Button,
@@ -33,14 +34,16 @@ interface ExtraAuthDialogInput {
   open: boolean;
 }
 
+const emptyConfirmDialog: ConfirmDialogInput = {
+  title: '',
+  negativeButtonText: 'Cancel',
+  positiveButtonText: 'OK',
+  onClickPositiveButtion: () => {},
+  open: false,
+};
+
 export default function Settings() {
-  const [confirmDialogInput, setConfirmDialogInput] = useState<ConfirmDialogInput>({
-    title: '',
-    negativeButtonText: '',
-    positiveButtonText: '',
-    onClickPositiveButtion: () => {},
-    open: false,
-  });
+  const [confirmDialogInput, setConfirmDialogInput] = useState<ConfirmDialogInput>(emptyConfirmDialog);
   const [extraAuthDialogInput, setExtraAuthDialogInput] = useState<ExtraAuthDialogInput>({
     otpImageDataUrl: '',
     open: false,
@@ -59,7 +62,7 @@ export default function Settings() {
         .get(`${process.env.NEXT_PUBLIC_API_ROOT_URL}/account/settings`, {
           headers: { session: sessionToken },
         })
-        .catch((error: AxiosError) => {
+        .catch(() => {
           router.replace('/signin');
         });
       if (response) {
@@ -67,13 +70,12 @@ export default function Settings() {
         setPassKeyActive(response.data.passkeyActive);
       }
     })();
-  }, [sessionToken]);
+  }, [sessionToken, router]);
 
-  const handle2FAToggle = (event: ChangeEvent<HTMLInputElement>) => {
+  const handle2FAToggle = (_event: ChangeEvent<HTMLInputElement>) => {
     if (twoFAActive) {
       setConfirmDialogInput({
-        ...confirmDialogInput,
-        title: '二段回認証の設定を解除しますか?',
+        title: '2段階認証を解除しますか?',
         onClickPositiveButtion: () => {
           execute2FALockUnlock(false);
         },
@@ -85,18 +87,19 @@ export default function Settings() {
       execute2FALockUnlock(true);
     }
   };
-  const handlePassKeyToggle = (event: ChangeEvent<HTMLInputElement>) => {
+
+  const handlePassKeyToggle = (_event: ChangeEvent<HTMLInputElement>) => {
     if (passKeyActive) {
       setConfirmDialogInput({
-        ...confirmDialogInput,
-        title: 'パスキーの設定を解除しますか?',
+        title: 'Passkeyを解除しますか?',
         negativeButtonText: 'キャンセル',
         positiveButtonText: '解除する',
+        onClickPositiveButtion: () => executePasskeyLockUnlock(false),
         open: true,
       });
     } else {
+      executePasskeyLockUnlock(true);
     }
-    //    setPassKeyActive(event.target.checked);
   };
 
   const executeSignOut = async () => {
@@ -136,7 +139,6 @@ export default function Settings() {
         const otpauthUrlQrcodeDataUrl = await qrcode.toDataURL(otpauthUrl);
         setTwoFAActive(true);
         setExtraAuthDialogInput({
-          ...extraAuthDialogInput,
           otpImageDataUrl: otpauthUrlQrcodeDataUrl,
           open: true,
         });
@@ -144,14 +146,35 @@ export default function Settings() {
         setTwoFAActive(false);
       }
     }
-    setConfirmDialogInput({ ...confirmDialogInput, open: false });
+    setConfirmDialogInput(emptyConfirmDialog);
   };
 
-  const executePasskeyLockUnlock = async () => {};
+  const executePasskeyLockUnlock = async (isLock: boolean) => {
+    if (isLock) {
+      const optionsResponse = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_ROOT_URL}/passkey/registration/options`,
+        {},
+        { headers: { session: sessionToken } },
+      );
+      const credential = await createPasskey(optionsResponse.data.options);
+      await axios.post(`${process.env.NEXT_PUBLIC_API_ROOT_URL}/passkey/registration/verify`, {
+        session: optionsResponse.data.challengeSession,
+        credential,
+      });
+      setPassKeyActive(true);
+    } else {
+      await axios.post(
+        `${process.env.NEXT_PUBLIC_API_ROOT_URL}/passkey/unregister`,
+        {},
+        { headers: { session: sessionToken } },
+      );
+      setPassKeyActive(false);
+    }
+    setConfirmDialogInput(emptyConfirmDialog);
+  };
 
   const handleSignOut = async () => {
     setConfirmDialogInput({
-      ...confirmDialogInput,
       title: 'サインアウトしますか?',
       negativeButtonText: 'キャンセル',
       positiveButtonText: 'サインアウトする',
@@ -176,14 +199,14 @@ export default function Settings() {
             <FormGroup>
               <FormControlLabel
                 control={<Switch checked={twoFAActive} value={twoFAActive} onChange={handle2FAToggle} />}
-                label="二段階認証"
+                label="2段階認証"
               />
               <FormControlLabel
                 control={<Switch checked={passKeyActive} value={passKeyActive} onChange={handlePassKeyToggle} />}
-                label="パスキー"
+                label="Passkey"
               />
             </FormGroup>
-            <Button onClick={(e) => handleSignOut()} variant="contained" color="error">
+            <Button onClick={handleSignOut} variant="contained" color="error">
               サインアウト
             </Button>
           </Box>
@@ -191,13 +214,12 @@ export default function Settings() {
       </Container>
       <Dialog
         open={confirmDialogInput.open}
-        onClose={(e) => setConfirmDialogInput({ ...confirmDialogInput, open: false })}
+        onClose={() => setConfirmDialogInput(emptyConfirmDialog)}
         aria-labelledby="unlock-dialog-title"
-        aria-describedby="unlock-dialog-description"
       >
         <DialogTitle id="unlock-dialog-title">{confirmDialogInput.title}</DialogTitle>
         <DialogActions>
-          <Button onClick={(e) => setConfirmDialogInput({ ...confirmDialogInput, open: false })} variant="contained" color="error">
+          <Button onClick={() => setConfirmDialogInput(emptyConfirmDialog)} variant="contained" color="error">
             {confirmDialogInput.negativeButtonText}
           </Button>
           <Button onClick={confirmDialogInput.onClickPositiveButtion} variant="contained">
@@ -207,20 +229,19 @@ export default function Settings() {
       </Dialog>
       <Dialog
         open={extraAuthDialogInput.open}
-        onClose={(e) => setExtraAuthDialogInput({ ...extraAuthDialogInput, open: false })}
+        onClose={() => setExtraAuthDialogInput({ ...extraAuthDialogInput, open: false })}
         aria-labelledby="extra-auth-dialog-title"
-        aria-describedby="extra-auth-dialog-description"
       >
-        <DialogTitle id="extra-auth-dialog-title">2段解認証の設定</DialogTitle>
+        <DialogTitle id="extra-auth-dialog-title">2段階認証の設定</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Google AuthenticatorでQRCodeを読み取って登録してください
+            Google AuthenticatorでQRコードを読み取って登録してください。
             <Image src={extraAuthDialogInput.otpImageDataUrl} alt="2FA QRcode" width={200} height={200} />
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={(e) => setExtraAuthDialogInput({ ...extraAuthDialogInput, open: false })} variant="contained">
-            読み取りました
+          <Button onClick={() => setExtraAuthDialogInput({ ...extraAuthDialogInput, open: false })} variant="contained">
+            閉じる
           </Button>
         </DialogActions>
       </Dialog>

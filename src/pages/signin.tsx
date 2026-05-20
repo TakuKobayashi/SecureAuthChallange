@@ -1,4 +1,5 @@
 import { SessionTokenKey } from '../commons/localstorage-const-keys';
+import { getPasskey } from '../commons/webauthn';
 import { useAuth } from '../context/auth';
 import { useState, ChangeEvent } from 'react';
 import {
@@ -63,6 +64,48 @@ export default function SignIn() {
       }
     }
   };
+
+  const handlePasskeySignIn = async () => {
+    if (!email) {
+      setErrorDialogInput({ ...errorDialogInput, title: 'Email required', message: 'Passkeyログインにはメールアドレスが必要です。', open: true });
+      return;
+    }
+    const optionsResponse = await axios
+      .post(
+        `${process.env.NEXT_PUBLIC_API_ROOT_URL}/passkey/authentication/options`,
+        { email },
+        {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+        },
+      )
+      .catch((error: AxiosError) => {
+        setErrorDialogInput({ ...errorDialogInput, title: 'Passkey認証に失敗しました', message: error.message, open: true });
+      });
+    if (!optionsResponse) {
+      return;
+    }
+    const credential = await getPasskey(optionsResponse.data.options).catch((error: Error) => {
+      setErrorDialogInput({ ...errorDialogInput, title: 'Passkey認証に失敗しました', message: error.message, open: true });
+    });
+    if (!credential) {
+      return;
+    }
+    const response = await axios
+      .post(`${process.env.NEXT_PUBLIC_API_ROOT_URL}/passkey/authentication/verify`, {
+        session: optionsResponse.data.challengeSession,
+        credential,
+      })
+      .catch((error: AxiosError) => {
+        setErrorDialogInput({ ...errorDialogInput, title: 'Passkey認証に失敗しました', message: error.message, open: true });
+      });
+    if (response && response.status < 400) {
+      window.localStorage.setItem(SessionTokenKey, response.data.session);
+      setSessionToken(response.data.session);
+      router.push('/settings');
+    }
+  };
   const handleChangeEmail = (e: ChangeEvent<HTMLInputElement>) => {
     setEmail(e.currentTarget.value);
   };
@@ -110,6 +153,9 @@ export default function SignIn() {
             />
             <Button type="submit" fullWidth variant="contained" sx={{ mt: 3, mb: 2 }} onClick={handleSubmit}>
               Sign In
+            </Button>
+            <Button fullWidth variant="outlined" sx={{ mb: 2 }} onClick={handlePasskeySignIn}>
+              Sign in with Passkey
             </Button>
             <Grid container>
               <Grid></Grid>
