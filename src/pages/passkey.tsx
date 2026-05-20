@@ -81,8 +81,7 @@ export default function Passkey() {
   };
 
   const executePasskeyLockUnlock = async () => {
-    const response = await axios
-    .post(`${process.env.NEXT_PUBLIC_API_ROOT_URL}/passkey/generate/publickey`)
+    const response = await axios.post(`${process.env.NEXT_PUBLIC_API_ROOT_URL}/passkey/generate/publickey`);
     console.log(response.data);
   };
 

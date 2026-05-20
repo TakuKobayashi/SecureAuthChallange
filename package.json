@@ -15,25 +15,25 @@
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
-    "@emotion/styled": "^11.14.0",
-    "@mui/material": "^7.0.2",
-    "@simplewebauthn/server": "^13.1.1",
-    "axios": "^1.9.0",
-    "hono": "^4.7.8",
-    "next": "15.3.1",
-    "otpauth": "^9.4.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/material": "^9.0.1",
+    "@simplewebauthn/server": "^13.3.0",
+    "axios": "^1.16.1",
+    "hono": "^4.12.21",
+    "next": "16.2.6",
+    "otpauth": "^9.5.1",
     "qrcode": "^1.5.4",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20250504.0",
-    "@types/node": "^20",
-    "@types/qrcode": "^1.5.5",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "prettier": "^3.5.3",
-    "typescript": "^5",
-    "wrangler": "^4.14.1"
+    "@cloudflare/workers-types": "^4.20260520.1",
+    "@types/node": "^25.9.1",
+    "@types/qrcode": "^1.5.6",
+    "@types/react": "^19.2.15",
+    "@types/react-dom": "^19.2.3",
+    "prettier": "^3.8.3",
+    "typescript": "^6.0.3",
+    "wrangler": "^4.93.0"
   }
 }

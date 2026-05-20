@@ -23,18 +23,18 @@ passkeyRouter.post('/generate/publickey', async (c) => {
   console.log(challenge);
   const pubKey = {
     challenge: challenge,
-    rp: {id: 'localhost', name: 'webauthn-app'},
-    user: {id: crypto.randomUUID()},
+    rp: { id: 'localhost', name: 'webauthn-app' },
+    user: { id: crypto.randomUUID() },
     pubKeyCredParams: [
-        {type: 'public-key', alg: -7},
-        {type: 'public-key', alg: -257},
+      { type: 'public-key', alg: -7 },
+      { type: 'public-key', alg: -257 },
     ],
     authenticatorSelection: {
-        authenticatorAttachment: 'platform',
-        userVerification: 'required',
-        residentKey: 'preferred',
-        requireResidentKey: false,
-    }
+      authenticatorAttachment: 'platform',
+      userVerification: 'required',
+      residentKey: 'preferred',
+      requireResidentKey: false,
+    },
   };
   console.log(pubKey);
   return c.json(pubKey);
@@ -42,7 +42,7 @@ passkeyRouter.post('/generate/publickey', async (c) => {
 
 passkeyRouter.post('/regist', async (c) => {
   //verifyRegistrationResponse
-  return c.json({passkey: 'regist'});
+  return c.json({ passkey: 'regist' });
 });
 
 export { passkeyRouter };
