@@ -9,6 +9,64 @@ type AuthenticationOptionsJSON = Omit<PublicKeyCredentialRequestOptions, 'challe
   allowCredentials?: Array<Omit<PublicKeyCredentialDescriptor, 'id'> & { id: string }>;
 };
 
+type RegistrationOptionsJSONWithOptionalRPID = RegistrationOptionsJSON & {
+  rp: RegistrationOptionsJSON['rp'] & { id?: string };
+};
+
+type AuthenticationOptionsJSONWithOptionalRPID = AuthenticationOptionsJSON & {
+  rpId?: string;
+};
+
+type PublicKeyCredentialConstructorWithJSON = typeof PublicKeyCredential & {
+  parseCreationOptionsFromJSON?: (options: RegistrationOptionsJSONWithOptionalRPID) => PublicKeyCredentialCreationOptions;
+  parseRequestOptionsFromJSON?: (options: AuthenticationOptionsJSONWithOptionalRPID) => PublicKeyCredentialRequestOptions;
+};
+
+type PublicKeyCredentialWithJSON = PublicKeyCredential & {
+  toJSON?: () => unknown;
+};
+
+const assertPasskeyAvailable = () => {
+  if (typeof window === 'undefined' || !window.isSecureContext) {
+    throw new Error('Passkey requires HTTPS or localhost.');
+  }
+  if (!window.PublicKeyCredential || !navigator.credentials) {
+    throw new Error('This browser does not support Passkey.');
+  }
+};
+
+const shouldOmitClientRPID = (rpID?: string): boolean => {
+  if (!rpID) {
+    return false;
+  }
+  return (
+    rpID === 'localhost' ||
+    rpID === '0.0.0.0' ||
+    rpID === '::1' ||
+    /^127(?:\.\d{1,3}){3}$/.test(rpID) ||
+    /^\d{1,3}(?:\.\d{1,3}){3}$/.test(rpID)
+  );
+};
+
+const normalizeCreationOptions = (options: RegistrationOptionsJSON): RegistrationOptionsJSONWithOptionalRPID => {
+  const normalized: RegistrationOptionsJSONWithOptionalRPID = {
+    ...options,
+    rp: { ...options.rp },
+  };
+  if (shouldOmitClientRPID(normalized.rp.id)) {
+    delete normalized.rp.id;
+  }
+  return normalized;
+};
+
+const normalizeRequestOptions = (options: AuthenticationOptionsJSON): AuthenticationOptionsJSONWithOptionalRPID => {
+  const normalized: AuthenticationOptionsJSONWithOptionalRPID = { ...options };
+  if (shouldOmitClientRPID(normalized.rpId)) {
+    delete normalized.rpId;
+  }
+  return normalized;
+};
+
 const base64UrlToBuffer = (value: string): ArrayBuffer => {
   const base64 = value.replace(/-/g, '+').replace(/_/g, '/');
   const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), '=');
@@ -52,11 +110,18 @@ const parseRequestOptions = (options: AuthenticationOptionsJSON): PublicKeyCrede
 });
 
 export async function createPasskey(options: RegistrationOptionsJSON) {
-  const credential = (await navigator.credentials.create({
-    publicKey: parseCreationOptions(options),
-  })) as PublicKeyCredential | null;
+  assertPasskeyAvailable();
+  const normalizedOptions = normalizeCreationOptions(options);
+  const publicKeyCredential = window.PublicKeyCredential as PublicKeyCredentialConstructorWithJSON;
+  const publicKey = publicKeyCredential.parseCreationOptionsFromJSON
+    ? publicKeyCredential.parseCreationOptionsFromJSON(normalizedOptions)
+    : parseCreationOptions(normalizedOptions);
+  const credential = (await navigator.credentials.create({ publicKey })) as PublicKeyCredentialWithJSON | null;
   if (!credential) {
     throw new Error('Passkey registration was cancelled');
+  }
+  if (typeof credential.toJSON === 'function') {
+    return credential.toJSON();
   }
   const response = credential.response as AuthenticatorAttestationResponse;
   return {
@@ -74,11 +139,18 @@ export async function createPasskey(options: RegistrationOptionsJSON) {
 }
 
 export async function getPasskey(options: AuthenticationOptionsJSON) {
-  const credential = (await navigator.credentials.get({
-    publicKey: parseRequestOptions(options),
-  })) as PublicKeyCredential | null;
+  assertPasskeyAvailable();
+  const normalizedOptions = normalizeRequestOptions(options);
+  const publicKeyCredential = window.PublicKeyCredential as PublicKeyCredentialConstructorWithJSON;
+  const publicKey = publicKeyCredential.parseRequestOptionsFromJSON
+    ? publicKeyCredential.parseRequestOptionsFromJSON(normalizedOptions)
+    : parseRequestOptions(normalizedOptions);
+  const credential = (await navigator.credentials.get({ publicKey })) as PublicKeyCredentialWithJSON | null;
   if (!credential) {
     throw new Error('Passkey authentication was cancelled');
+  }
+  if (typeof credential.toJSON === 'function') {
+    return credential.toJSON();
   }
   const response = credential.response as AuthenticatorAssertionResponse;
   return {

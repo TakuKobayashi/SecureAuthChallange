@@ -26,6 +26,18 @@ interface ErrorDialogInput {
   open: boolean;
 }
 
+const getErrorMessage = (error: unknown): string => {
+  if (axios.isAxiosError(error)) {
+    const axiosError = error as AxiosError<{ message?: string } | string>;
+    const responseData = axiosError.response?.data;
+    if (typeof responseData === 'string') {
+      return responseData;
+    }
+    return responseData?.message || axiosError.message;
+  }
+  return error instanceof Error ? error.message : 'Passkey authentication failed';
+};
+
 export default function SignIn() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -49,7 +61,7 @@ export default function SignIn() {
         },
       )
       .catch((error: AxiosError) => {
-        setErrorDialogInput({ ...errorDialogInput, title: '認証に失敗しました', message: error.message, open: true });
+        setErrorDialogInput({ ...errorDialogInput, title: '認証に失敗しました', message: getErrorMessage(error), open: true });
       });
     if (response && response.status < 400) {
       if (response.data.state === 'extraauth') {
@@ -86,7 +98,7 @@ export default function SignIn() {
         },
       )
       .catch((error: AxiosError) => {
-        setErrorDialogInput({ ...errorDialogInput, title: 'Passkey認証に失敗しました', message: error.message, open: true });
+        setErrorDialogInput({ ...errorDialogInput, title: 'Passkey認証に失敗しました', message: getErrorMessage(error), open: true });
       });
     if (!optionsResponse) {
       return;
@@ -103,7 +115,7 @@ export default function SignIn() {
         credential,
       })
       .catch((error: AxiosError) => {
-        setErrorDialogInput({ ...errorDialogInput, title: 'Passkey認証に失敗しました', message: error.message, open: true });
+        setErrorDialogInput({ ...errorDialogInput, title: 'Passkey認証に失敗しました', message: getErrorMessage(error), open: true });
       });
     if (response && response.status < 400) {
       window.localStorage.setItem(SessionTokenKey, response.data.session);

@@ -37,11 +37,22 @@ function getWebAuthnConfig(c: any): { rpName: string; rpID: string; origin: stri
     throw new HTTPException(400, { message: 'Origin header is required for WebAuthn' });
   }
   const url = new URL(origin);
+  const hostname = url.hostname.replace(/^\[/, '').replace(/\]$/, '');
   return {
     rpName: 'SecureAuthChallange',
-    rpID: url.hostname,
+    rpID: hostname,
     origin,
   };
+}
+
+function shouldOmitClientRPID(rpID: string): boolean {
+  return (
+    rpID === 'localhost' ||
+    rpID === '0.0.0.0' ||
+    rpID === '::1' ||
+    /^127(?:\.\d{1,3}){3}$/.test(rpID) ||
+    /^\d{1,3}(?:\.\d{1,3}){3}$/.test(rpID)
+  );
 }
 
 function getCredentials(userInfo: UserInfo): StoredPasskeyCredential[] {
@@ -73,7 +84,7 @@ passkeyRouter.get('/', async (c) => {
 passkeyRouter.post('/registration/options', async (c) => {
   const sessionUuid = c.req.header('session') || '';
   const userInfo = await ensureUserId(c, await loadSessionUser(c, sessionUuid));
-  const { rpName, rpID } = getWebAuthnConfig(c);
+  const { rpName, rpID, origin } = getWebAuthnConfig(c);
   const credentials = getCredentials(userInfo);
   const options = await generateRegistrationOptions({
     rpName,
@@ -91,11 +102,16 @@ passkeyRouter.post('/registration/options', async (c) => {
       userVerification: 'required',
     },
   });
+  if (shouldOmitClientRPID(rpID)) {
+    delete options.rp.id;
+  }
 
   const challengeSession = await generateSession(c, {
     userEmail: userInfo.email,
     purpose: 'passkey-registration',
     challenge: options.challenge,
+    origin,
+    rpID,
   });
   return c.json({ options, challengeSession });
 });
@@ -103,14 +119,25 @@ passkeyRouter.post('/registration/options', async (c) => {
 passkeyRouter.post('/registration/verify', async (c) => {
   const body = (await c.req.json()) as { session: string; credential: RegistrationResponseJSON };
   const { sessionInfo, userInfo } = await loadChallengeSessionUser(c, body.session, 'passkey-registration');
-  const { rpID, origin } = getWebAuthnConfig(c);
-  const verification = await verifyRegistrationResponse({
-    response: body.credential,
-    expectedChallenge: sessionInfo.challenge || '',
-    expectedOrigin: origin,
-    expectedRPID: rpID,
-    requireUserVerification: true,
-  });
+  const origin = sessionInfo.origin || c.req.header('Origin');
+  const rpID = sessionInfo.rpID;
+  if (!origin || !rpID) {
+    throw new HTTPException(400, { message: 'WebAuthn challenge session is missing origin or RP ID' });
+  }
+  let verification;
+  try {
+    verification = await verifyRegistrationResponse({
+      response: body.credential,
+      expectedChallenge: sessionInfo.challenge || '',
+      expectedOrigin: origin,
+      expectedRPID: rpID,
+      requireUserVerification: true,
+    });
+  } catch (error) {
+    await deleteSession(c, body.session);
+    const message = error instanceof Error ? error.message : 'Passkey registration failed';
+    throw new HTTPException(401, { message });
+  }
   await deleteSession(c, body.session);
 
   if (!verification.verified || !verification.registrationInfo) {
@@ -141,7 +168,7 @@ passkeyRouter.post('/authentication/options', async (c) => {
     throw new HTTPException(401, { message: 'Passkey is not registered' });
   }
 
-  const { rpID } = getWebAuthnConfig(c);
+  const { rpID, origin } = getWebAuthnConfig(c);
   const options = await generateAuthenticationOptions({
     rpID,
     allowCredentials: credentials.map((credential) => ({
@@ -150,10 +177,15 @@ passkeyRouter.post('/authentication/options', async (c) => {
     })),
     userVerification: 'required',
   });
+  if (shouldOmitClientRPID(rpID)) {
+    delete options.rpId;
+  }
   const challengeSession = await generateSession(c, {
     userEmail: email,
     purpose: 'passkey-authentication',
     challenge: options.challenge,
+    origin,
+    rpID,
   });
   return c.json({ options, challengeSession });
 });
@@ -167,15 +199,26 @@ passkeyRouter.post('/authentication/verify', async (c) => {
     throw new HTTPException(401, { message: 'Unknown passkey' });
   }
 
-  const { rpID, origin } = getWebAuthnConfig(c);
-  const verification = await verifyAuthenticationResponse({
-    response: body.credential,
-    expectedChallenge: sessionInfo.challenge || '',
-    expectedOrigin: origin,
-    expectedRPID: rpID,
-    credential: toWebAuthnCredential(storedCredential),
-    requireUserVerification: true,
-  });
+  const origin = sessionInfo.origin || c.req.header('Origin');
+  const rpID = sessionInfo.rpID;
+  if (!origin || !rpID) {
+    throw new HTTPException(400, { message: 'WebAuthn challenge session is missing origin or RP ID' });
+  }
+  let verification;
+  try {
+    verification = await verifyAuthenticationResponse({
+      response: body.credential,
+      expectedChallenge: sessionInfo.challenge || '',
+      expectedOrigin: origin,
+      expectedRPID: rpID,
+      credential: toWebAuthnCredential(storedCredential),
+      requireUserVerification: true,
+    });
+  } catch (error) {
+    await deleteSession(c, body.session);
+    const message = error instanceof Error ? error.message : 'Passkey authentication failed';
+    throw new HTTPException(401, { message });
+  }
   await deleteSession(c, body.session);
 
   if (!verification.verified) {

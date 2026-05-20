@@ -2,7 +2,7 @@ import { SessionTokenKey } from '../commons/localstorage-const-keys';
 import { createPasskey } from '../commons/webauthn';
 import { useAuth } from '../context/auth';
 import { useState, useEffect, ChangeEvent } from 'react';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import {
   Box,
   Button,
@@ -34,6 +34,12 @@ interface ExtraAuthDialogInput {
   open: boolean;
 }
 
+interface ErrorDialogInput {
+  title: string;
+  message: string;
+  open: boolean;
+}
+
 const emptyConfirmDialog: ConfirmDialogInput = {
   title: '',
   negativeButtonText: 'Cancel',
@@ -42,8 +48,25 @@ const emptyConfirmDialog: ConfirmDialogInput = {
   open: false,
 };
 
+const getErrorMessage = (error: unknown): string => {
+  if (axios.isAxiosError(error)) {
+    const axiosError = error as AxiosError<{ message?: string } | string>;
+    const responseData = axiosError.response?.data;
+    if (typeof responseData === 'string') {
+      return responseData;
+    }
+    return responseData?.message || axiosError.message;
+  }
+  return error instanceof Error ? error.message : 'Passkey operation failed';
+};
+
 export default function Settings() {
   const [confirmDialogInput, setConfirmDialogInput] = useState<ConfirmDialogInput>(emptyConfirmDialog);
+  const [errorDialogInput, setErrorDialogInput] = useState<ErrorDialogInput>({
+    title: '',
+    message: '',
+    open: false,
+  });
   const [extraAuthDialogInput, setExtraAuthDialogInput] = useState<ExtraAuthDialogInput>({
     otpImageDataUrl: '',
     open: false,
@@ -150,21 +173,30 @@ export default function Settings() {
   };
 
   const executePasskeyLockUnlock = async (isLock: boolean) => {
-    if (isLock) {
-      const optionsResponse = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_ROOT_URL}/passkey/registration/options`,
-        {},
-        { headers: { session: sessionToken } },
-      );
-      const credential = await createPasskey(optionsResponse.data.options);
-      await axios.post(`${process.env.NEXT_PUBLIC_API_ROOT_URL}/passkey/registration/verify`, {
-        session: optionsResponse.data.challengeSession,
-        credential,
+    try {
+      if (isLock) {
+        const optionsResponse = await axios.post(
+          `${process.env.NEXT_PUBLIC_API_ROOT_URL}/passkey/registration/options`,
+          {},
+          { headers: { session: sessionToken } },
+        );
+        const credential = await createPasskey(optionsResponse.data.options);
+        await axios.post(`${process.env.NEXT_PUBLIC_API_ROOT_URL}/passkey/registration/verify`, {
+          session: optionsResponse.data.challengeSession,
+          credential,
+        });
+        setPassKeyActive(true);
+      } else {
+        await axios.post(`${process.env.NEXT_PUBLIC_API_ROOT_URL}/passkey/unregister`, {}, { headers: { session: sessionToken } });
+        setPassKeyActive(false);
+      }
+    } catch (error) {
+      const message = getErrorMessage(error);
+      setErrorDialogInput({
+        title: isLock ? 'Passkey registration failed' : 'Passkey unregister failed',
+        message,
+        open: true,
       });
-      setPassKeyActive(true);
-    } else {
-      await axios.post(`${process.env.NEXT_PUBLIC_API_ROOT_URL}/passkey/unregister`, {}, { headers: { session: sessionToken } });
-      setPassKeyActive(false);
     }
     setConfirmDialogInput(emptyConfirmDialog);
   };
@@ -238,6 +270,22 @@ export default function Settings() {
         <DialogActions>
           <Button onClick={() => setExtraAuthDialogInput({ ...extraAuthDialogInput, open: false })} variant="contained">
             閉じる
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog
+        open={errorDialogInput.open}
+        onClose={() => setErrorDialogInput({ ...errorDialogInput, open: false })}
+        aria-labelledby="passkey-error-dialog-title"
+        aria-describedby="passkey-error-dialog-description"
+      >
+        <DialogTitle id="passkey-error-dialog-title">{errorDialogInput.title}</DialogTitle>
+        <DialogContent>
+          <DialogContentText id="passkey-error-dialog-description">{errorDialogInput.message}</DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setErrorDialogInput({ ...errorDialogInput, open: false })} autoFocus>
+            OK
           </Button>
         </DialogActions>
       </Dialog>

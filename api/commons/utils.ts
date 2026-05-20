@@ -8,6 +8,8 @@ export type SessionInfo = {
   userEmail: string;
   purpose: SessionPurpose;
   challenge?: string;
+  origin?: string;
+  rpID?: string;
 };
 
 export type StoredPasskeyCredential = {
