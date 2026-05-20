@@ -67,7 +67,12 @@ export default function SignIn() {
 
   const handlePasskeySignIn = async () => {
     if (!email) {
-      setErrorDialogInput({ ...errorDialogInput, title: 'Email required', message: 'Passkeyログインにはメールアドレスが必要です。', open: true });
+      setErrorDialogInput({
+        ...errorDialogInput,
+        title: 'Email required',
+        message: 'Passkeyログインにはメールアドレスが必要です。',
+        open: true,
+      });
       return;
     }
     const optionsResponse = await axios

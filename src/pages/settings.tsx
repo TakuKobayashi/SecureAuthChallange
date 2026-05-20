@@ -163,11 +163,7 @@ export default function Settings() {
       });
       setPassKeyActive(true);
     } else {
-      await axios.post(
-        `${process.env.NEXT_PUBLIC_API_ROOT_URL}/passkey/unregister`,
-        {},
-        { headers: { session: sessionToken } },
-      );
+      await axios.post(`${process.env.NEXT_PUBLIC_API_ROOT_URL}/passkey/unregister`, {}, { headers: { session: sessionToken } });
       setPassKeyActive(false);
     }
     setConfirmDialogInput(emptyConfirmDialog);

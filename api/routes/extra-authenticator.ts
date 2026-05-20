@@ -3,7 +3,14 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { HTTPException } from 'hono/http-exception';
 import * as OTPAuth from 'otpauth';
-import { deleteSession, generateSession, getRequiredFormValue, loadChallengeSessionUser, loadSessionUser, saveUser } from '@api/commons/utils';
+import {
+  deleteSession,
+  generateSession,
+  getRequiredFormValue,
+  loadChallengeSessionUser,
+  loadSessionUser,
+  saveUser,
+} from '@api/commons/utils';
 
 type Bindings = {
   secure_auth_challange_user: KVNamespace;

@@ -99,8 +99,7 @@ export async function loadChallengeSessionUser(
 
 export async function generateSession(context: Context, sessionInfo: SessionInfo): Promise<string> {
   const sessionUuid = crypto.randomUUID();
-  const expirationTtl =
-    sessionInfo.purpose === 'authenticated' ? AUTHENTICATED_SESSION_TTL_SECONDS : CHALLENGE_SESSION_TTL_SECONDS;
+  const expirationTtl = sessionInfo.purpose === 'authenticated' ? AUTHENTICATED_SESSION_TTL_SECONDS : CHALLENGE_SESSION_TTL_SECONDS;
   await context.env.secure_auth_challange_session.put(sessionUuid, JSON.stringify(sessionInfo), { expirationTtl });
   return sessionUuid;
 }
